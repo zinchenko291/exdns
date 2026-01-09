@@ -1,0 +1,17 @@
+version: "3.9"
+
+services:
+  exdns:
+    build: .
+    ports:
+      - "53:53/udp"
+      - "8080:8080"
+    environment:
+      API_TOKEN: "changeme"
+      DNS_PORT: "53"
+      HTTP_PORT: "8080"
+      ZONES_FOLDER: "/data/zones"
+      REPLICATION_QUORUM: "0.5"
+      REPLICATION_TIMEOUT_MS: "2000"
+    volumes:
+      - ./zones:/data/zones
