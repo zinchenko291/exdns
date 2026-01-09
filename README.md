@@ -122,6 +122,98 @@ curl -H "Authentication: Bearer changeme" \
   http://localhost:8080/zones/hello.test
 ```
 
+### HTTP CRUD (OpenAPI‑style)
+
+Base URL: `http://<host>:<http_port>`
+
+Auth:
+```
+Authentication: Bearer <token>
+```
+
+Common errors:
+- `401 Unauthorized` — отсутствует/неверный токен.
+- `400 Bad Request` — неверный JSON.
+- `404 Not Found` — зона не найдена.
+- `422 Unprocessable Entity` — не проходит валидация схемы.
+- `500 Internal Server Error` — ошибка хранения/репликации.
+
+#### GET /zones/{name}
+Description: получить текущую зону.
+
+Response 200:
+```json
+{
+  "name": "hello.test",
+  "version": 3,
+  "records": [ ... ]
+}
+```
+
+Response 404:
+```json
+{"error": "not_found"}
+```
+
+#### PUT /zones/{name}
+Description: создать или полностью заменить зону.
+
+Request body:
+```json
+{
+  "name": "hello.test",
+  "version": 1,
+  "records": [ ... ]
+}
+```
+
+Notes:
+- `name` в URL и в теле должны совпадать.
+- при успехе версия сохраняется как есть (можно передать следующую).
+
+Response 200:
+```json
+{"status": "ok", "version": 1}
+```
+
+Response 422:
+```json
+{"error": "validation_failed", "details": "..."}
+```
+
+#### PATCH /zones/{name}
+Description: частичное обновление зоны.
+
+Request body (любой поднабор полей):
+```json
+{
+  "version": 2,
+  "records": [ ... ]
+}
+```
+
+Notes:
+- если `records` отсутствует, остаются старые.
+- `version` должен быть больше текущей.
+
+Response 200:
+```json
+{"status": "ok", "version": 2}
+```
+
+#### DELETE /zones/{name}
+Description: удалить зону.
+
+Response 200:
+```json
+{"status": "ok"}
+```
+
+Response 404:
+```json
+{"error": "not_found"}
+```
+
 ## DNS запросы
 
 DNS сервер слушает UDP порт `dns_port`.
@@ -161,6 +253,24 @@ _build/prod/rel/exdns/bin/exdns start
 mix prep_release
 ```
 
+### Конфигурация release
+
+Release читает параметры из `config/runtime.exs`.
+Переменные окружения:
+- `ZONES_FOLDER` — путь к зонам (по умолчанию `./zones`).
+- `DNS_PORT` — UDP порт DNS (по умолчанию `53`).
+- `HTTP_PORT` — HTTP порт API (по умолчанию `8080`).
+- `API_TOKEN` — токен доступа для HTTP API (по умолчанию `changeme`).
+- `REPLICATION_QUORUM` — доля ack для коммита (по умолчанию `0.5`).
+- `REPLICATION_TIMEOUT_MS` — таймаут репликации (по умолчанию `2000`).
+
+Пример запуска release:
+```bash
+API_TOKEN=secret HTTP_PORT=8081 \
+ZONES_FOLDER=/data/zones \
+_build/prod/rel/exdns/bin/exdns start
+```
+
 ## Docker
 
 Сборка:
@@ -194,4 +304,3 @@ mix test
 Подробные логи включены в большинстве модулей:
 - `info` для основных операций,
 - `debug` для внутренних шагов.
-
