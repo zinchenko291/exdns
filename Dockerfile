@@ -1,4 +1,4 @@
-FROM hexpm/elixir:1.18.2-erlang-27.2.1-debian-bookworm-20250103 AS build
+FROM elixir:1.18.4 AS build
 
 WORKDIR /app
 
@@ -11,7 +11,6 @@ RUN mix deps.get --only prod
 RUN mix deps.compile
 
 COPY lib lib
-COPY priv priv
 
 RUN mix compile
 RUN mix release
