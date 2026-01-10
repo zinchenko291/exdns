@@ -5,6 +5,7 @@ config :exdns,
   dns_port: 53,
   http_port: 8080,
   api_token: "changeme",
+  cors_origin: "*",
   cluster_topologies: [
     local: [
       strategy: Cluster.Strategy.Gossip

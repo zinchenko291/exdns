@@ -8,6 +8,7 @@ defmodule Exdns.Http.Router do
   alias Models.Dns.Zone
 
   plug :match
+  plug :cors
   plug :authorize
   plug :dispatch
 
@@ -69,6 +70,36 @@ defmodule Exdns.Http.Router do
         conn
         |> json(401, %{error: "unauthorized"})
         |> halt()
+    end
+  end
+
+  defp cors(conn, _opts) do
+    origin = Plug.Conn.get_req_header(conn, "origin") |> List.first()
+    allowed = Application.get_env(:exdns, :cors_origin, "*")
+    allow_origin =
+      cond do
+        allowed == "*" -> "*"
+        is_list(allowed) and origin in allowed -> origin
+        is_binary(allowed) -> allowed
+        true -> nil
+      end
+
+    conn =
+      if allow_origin do
+        conn
+        |> Plug.Conn.put_resp_header("access-control-allow-origin", allow_origin)
+        |> Plug.Conn.put_resp_header("access-control-allow-methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS")
+        |> Plug.Conn.put_resp_header("access-control-allow-headers", "content-type, authentication, Authorization")
+      else
+        conn
+      end
+
+    if conn.method == "OPTIONS" do
+      conn
+      |> Plug.Conn.send_resp(204, "")
+      |> halt()
+    else
+      conn
     end
   end
 
